@@ -29,11 +29,17 @@ async function init() {
   
   console.log('[Idealista Distance] Waiting for listing items...');
   
-  // Wait for the main listing items to appear
+  // Wait for the main listing items to appear (listings page)
   waitForElement('main.listing-items', () => {
     console.log('[Idealista Distance] Found listing container, starting to process listings');
     processListings();
     observeListingChanges();
+  });
+  
+  // Wait for detail container (detail page)
+  waitForElement('main.detail-container', () => {
+    console.log('[Idealista Distance] Found detail container, processing detail page');
+    processDetailPage();
   });
 }
 
@@ -114,6 +120,80 @@ async function processListings() {
     if (settings.apiKey) {
       calculateDistances(address, distanceEl);
     }
+  }
+}
+
+// Process detail page
+async function processDetailPage() {
+  // Check if already processed
+  if (document.querySelector('.idealista-distance-info-detail')) {
+    console.log('[Idealista Distance] Detail page already processed');
+    return;
+  }
+  
+  // Find the comment wrapper to insert before it
+  const commentWrapper = document.querySelector('div#comment-wrapper');
+  if (!commentWrapper) {
+    console.log('[Idealista Distance] Comment wrapper not found on detail page');
+    return;
+  }
+  
+  // Try to extract address from various possible locations on detail page
+  let address = '';
+  
+  // Get address from headerMap list items
+  const headerMapItems = document.querySelectorAll('div#headerMap>ul>li.header-map-list');
+  if (headerMapItems.length > 0) {
+    address = Array.from(headerMapItems)
+      .map(li => li.textContent.trim())
+      .filter(text => text !== '')
+      .join(', ');
+    console.log(`[Idealista Distance] Extracted address from headerMap: "${address}"`);
+  }
+  
+  // Fallback: Try getting from main address element
+  if (!address) {
+    const addressElement = document.querySelector('.main-info__title-main') || 
+                           document.querySelector('h1.title') ||
+                           document.querySelector('[data-test="property-address"]');
+    
+    if (addressElement) {
+      address = addressElement.textContent.trim();
+      console.log(`[Idealista Distance] Extracted address from fallback selector: "${address}"`);
+    }
+  }
+  
+  // If still no address, try getting from subtitle
+  if (!address) {
+    const subtitleElement = document.querySelector('.main-info__title-minor');
+    if (subtitleElement) {
+      address = subtitleElement.textContent.trim();
+      console.log(`[Idealista Distance] Extracted address from subtitle: "${address}"`);
+    }
+  }
+  
+  if (!address) {
+    console.log('[Idealista Distance] Could not find address on detail page');
+    return;
+  }
+  
+  console.log(`[Idealista Distance] Found detail page address: "${address}"`);
+  
+  // Create and insert distance info element
+  const distanceEl = document.createElement('div');
+  distanceEl.className = 'idealista-distance-info idealista-distance-info-detail';
+  
+  if (!settings.apiKey) {
+    distanceEl.innerHTML = '<span class="warning">⚠️ Configure API key to calculate distances</span>';
+  } else {
+    distanceEl.innerHTML = '<span class="loading">Calculating distance...</span>';
+  }
+  
+  commentWrapper.parentNode.insertBefore(distanceEl, commentWrapper);
+  
+  // Calculate distances only if API key is present
+  if (settings.apiKey) {
+    calculateDistances(address, distanceEl);
   }
 }
 
@@ -217,7 +297,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'settingsUpdated') {
     // Reload settings and reprocess
     settings = null;
-    // Reset all processed flags
+    
+    // Reset all processed flags for listings
     document.querySelectorAll('article.item[data-distance-processed]').forEach(article => {
       article.removeAttribute('data-distance-processed');
       const distanceInfo = article.querySelector('.idealista-distance-info');
@@ -225,6 +306,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         distanceInfo.remove();
       }
     });
+    
+    // Reset detail page distance info
+    const detailDistanceInfo = document.querySelector('.idealista-distance-info-detail');
+    if (detailDistanceInfo) {
+      detailDistanceInfo.remove();
+    }
+    
     init();
   }
 });
@@ -238,6 +326,15 @@ style.textContent = `
     background: #f0f8ff;
     border-radius: 4px;
     font-size: 13px;
+  }
+  
+  .idealista-distance-info-detail {
+    margin: 20px 0;
+    padding: 16px;
+    background: #e3f2fd;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   
   .idealista-distance-info .loading {
@@ -260,14 +357,27 @@ style.textContent = `
     gap: 4px;
   }
   
+  .idealista-distance-info-detail .distance-results {
+    gap: 8px;
+  }
+  
   .distance-item {
     display: flex;
     align-items: center;
     gap: 6px;
   }
   
+  .idealista-distance-info-detail .distance-item {
+    gap: 8px;
+    font-size: 15px;
+  }
+  
   .mode-icon {
     font-size: 14px;
+  }
+  
+  .idealista-distance-info-detail .mode-icon {
+    font-size: 18px;
   }
   
   .location-label {
@@ -280,9 +390,18 @@ style.textContent = `
     color: #333;
   }
   
+  .idealista-distance-info-detail .duration {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  
   .distance {
     color: #666;
     font-size: 11px;
+  }
+  
+  .idealista-distance-info-detail .distance {
+    font-size: 13px;
   }
 `;
 document.head.appendChild(style);

@@ -9,6 +9,7 @@ A Chrome extension that automatically calculates and displays travel times from 
 - 🚗 Supports multiple travel modes (driving, transit, walking, bicycling)
 - ⚙️ Easy configuration through popup interface
 - 🔄 Real-time updates when browsing listings
+- 📍 Works on both listing pages and property detail pages
 
 ## Installation
 
@@ -49,6 +50,7 @@ A Chrome extension that automatically calculates and displays travel times from 
    - Travel time from each configured location
    - Distance to the property
    - Information appears above the price for each listing
+   - **On detail pages**: Information appears before the comments section with enhanced styling
 
 ## Configuration Options
 
