@@ -1,24 +1,20 @@
 // Load settings when popup opens
 document.addEventListener('DOMContentLoaded', async () => {
-  const result = await chrome.storage.sync.get(['apiKey', 'locations', 'travelMode']);
+  const result = await chrome.storage.sync.get(['apiKey', 'locations']);
   
   if (result.apiKey) {
     document.getElementById('apiKey').value = result.apiKey;
   }
   
-  if (result.travelMode) {
-    document.getElementById('travelMode').value = result.travelMode;
-  }
-  
   if (result.locations && result.locations.length > 0) {
     result.locations.forEach(location => addLocationInput(location));
   } else {
-    addLocationInput('');
+    addLocationInput({ address: '', travelMode: 'driving' });
   }
 });
 
 // Add location input field
-function addLocationInput(value = '') {
+function addLocationInput(location = { address: '', travelMode: 'driving' }) {
   const locationsList = document.getElementById('locationsList');
   const locationDiv = document.createElement('div');
   locationDiv.className = 'location-item';
@@ -27,7 +23,25 @@ function addLocationInput(value = '') {
   input.type = 'text';
   input.className = 'location-input';
   input.placeholder = 'e.g., Via Roma 1, Milano';
-  input.value = value;
+  input.value = typeof location === 'string' ? location : location.address;
+  
+  const select = document.createElement('select');
+  select.className = 'travel-mode-select';
+  const modes = [
+    { value: 'driving', icon: '🚗', label: 'Driving' },
+    { value: 'transit', icon: '🚌', label: 'Transit' },
+    { value: 'walking', icon: '🚶', label: 'Walking' },
+    { value: 'bicycling', icon: '🚴', label: 'Bicycling' }
+  ];
+  
+  modes.forEach(mode => {
+    const option = document.createElement('option');
+    option.value = mode.value;
+    option.textContent = `${mode.icon} ${mode.label}`;
+    select.appendChild(option);
+  });
+  
+  select.value = typeof location === 'string' ? 'driving' : location.travelMode;
   
   const removeBtn = document.createElement('button');
   removeBtn.textContent = '×';
@@ -37,35 +51,34 @@ function addLocationInput(value = '') {
   };
   
   locationDiv.appendChild(input);
+  locationDiv.appendChild(select);
   locationDiv.appendChild(removeBtn);
   locationsList.appendChild(locationDiv);
 }
 
 // Add location button
 document.getElementById('addLocation').addEventListener('click', () => {
-  addLocationInput('');
+  addLocationInput({ address: '', travelMode: 'driving' });
 });
 
 // Save button
 document.getElementById('save').addEventListener('click', async () => {
   const apiKey = document.getElementById('apiKey').value.trim();
-  const travelMode = document.getElementById('travelMode').value;
-  const locationInputs = document.querySelectorAll('.location-input');
-  const locations = Array.from(locationInputs)
-    .map(input => input.value.trim())
-    .filter(value => value !== '');
-  
-  if (!apiKey) {
-    showStatus('Please enter an API key', 'error');
-    return;
-  }
+  const locationItems = document.querySelectorAll('.location-item');
+  const locations = Array.from(locationItems)
+    .map(item => {
+      const address = item.querySelector('.location-input').value.trim();
+      const travelMode = item.querySelector('.travel-mode-select').value;
+      return { address, travelMode };
+    })
+    .filter(loc => loc.address !== '');
   
   if (locations.length === 0) {
     showStatus('Please add at least one location', 'error');
     return;
   }
   
-  await chrome.storage.sync.set({ apiKey, locations, travelMode });
+  await chrome.storage.sync.set({ apiKey, locations });
   showStatus('Settings saved successfully!', 'success');
   
   // Notify content script to refresh

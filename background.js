@@ -12,20 +12,42 @@ async function calculateDistance(origin, destination, travelMode, apiKey) {
   const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&mode=${travelMode}&key=${apiKey}`;
   
   try {
+    console.log(`[Distance API] Calculating: "${origin}" -> "${destination}" (${travelMode})`);
     const response = await fetch(url);
     const data = await response.json();
     
-    if (data.status === 'OK' && data.rows[0].elements[0].status === 'OK') {
-      const element = data.rows[0].elements[0];
-      return {
+    console.log('[Distance API] Full response:', data);
+    
+    if (data.status !== 'OK') {
+      console.error('[Distance API] Overall status error:', data.status, data.error_message);
+      throw new Error(`API overall status: ${data.status}${data.error_message ? ' - ' + data.error_message : ''}`);
+    }
+    
+    if (!data.rows || !data.rows[0] || !data.rows[0].elements || !data.rows[0].elements[0]) {
+      console.error('[Distance API] Invalid response structure:', data);
+      throw new Error('API returned invalid response structure');
+    }
+    
+    const element = data.rows[0].elements[0];
+    console.log('[Distance API] Element status:', element.status);
+    
+    if (element.status === 'OK') {
+      const result = {
         distance: element.distance.text,
         duration: element.duration.text
       };
+      console.log('[Distance API] Success:', result);
+      return result;
     } else {
-      throw new Error(`API returned status: ${data.status}`);
+      console.error('[Distance API] Element status error:', {
+        status: element.status,
+        origin: data.origin_addresses?.[0],
+        destination: data.destination_addresses?.[0]
+      });
+      throw new Error(`Cannot calculate route: ${element.status} (Origin: "${data.origin_addresses?.[0]}", Destination: "${data.destination_addresses?.[0]}")`);
     }
   } catch (error) {
-    console.error('Google Maps API error:', error);
+    console.error('[Distance API] Error:', error);
     throw error;
   }
 }

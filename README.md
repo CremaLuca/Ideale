@@ -33,10 +33,13 @@ A Chrome extension that automatically calculates and displays travel times from 
 ### Configure the Extension
 
 1. Click on the extension icon in your Chrome toolbar
-2. Enter your Google Maps API key
-3. Add one or more locations (e.g., "Via Roma 1, Milano")
-4. Select your preferred travel mode
-5. Click "Save Settings"
+2. Add one or more locations (e.g., "Via Roma 1, Milano") - **Required**
+   - Each location has its own travel mode selector (🚗 Driving, 🚌 Transit, 🚶 Walking, 🚴 Bicycling)
+   - You can add the same address multiple times with different travel modes
+3. Enter your Google Maps API key - **Optional** (can be added later)
+4. Click "Save Settings"
+
+**Note:** You can save your locations first and add the API key later. Without an API key, the extension will show a reminder to configure it on each listing.
 
 ### Browse Idealista
 
@@ -50,20 +53,21 @@ A Chrome extension that automatically calculates and displays travel times from 
 ## Configuration Options
 
 - **Google Maps API Key**: Required for distance calculations
-- **Locations**: Add multiple locations to calculate distances from (e.g., your workplace, favorite spots)
-- **Travel Mode**: Choose between:
-  - 🚗 Driving
-  - 🚌 Transit (public transportation)
-  - 🚶 Walking
-  - 🚴 Bicycling
+- **Locations**: Add multiple locations with individual travel modes:
+  - 🚗 **Driving**: Car travel time
+  - 🚌 **Transit**: Public transportation
+  - 🚶 **Walking**: Walking distance
+  - 🚴 **Bicycling**: Cycling distance
+  - **Tip**: Add the same address twice with different modes (e.g., driving + transit) to compare options
 
 ## Screenshots
 
 The extension displays distance and travel time information directly in the listing:
 
 ```
-📍 Ufficio: 15 min (8.5 km)
-📍 Casa: 25 min (14.2 km)
+� Ufficio: 15 min (8.5 km)
+🚌 Ufficio: 25 min (8.5 km)
+🚶 Casa: 35 min (2.1 km)
 ```
 
 ## Privacy

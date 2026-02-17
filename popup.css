@@ -62,6 +62,22 @@ select:focus {
 
 .location-input {
   flex: 1;
+  min-width: 0;
+}
+
+.travel-mode-select {
+  width: 130px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background: white;
+  cursor: pointer;
+}
+
+.travel-mode-select:focus {
+  outline: none;
+  border-color: #1976d2;
 }
 
 .btn-primary {
