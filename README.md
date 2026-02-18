@@ -10,6 +10,7 @@ A Chrome extension that automatically calculates and displays travel times from 
 - ⚙️ Easy configuration through popup interface
 - 🔄 Real-time updates when browsing listings
 - 📍 Works on both listing pages and property detail pages
+- 💾 Smart caching - distances are cached locally to minimize API calls and improve performance
 
 ## Installation
 
@@ -72,9 +73,25 @@ The extension displays distance and travel time information directly in the list
 🚶 Casa: 35 min (2.1 km)
 ```
 
+## Caching & Performance
+
+The extension uses smart caching to improve performance and reduce Google Maps API usage:
+
+- **Distance results are cached locally** - Once calculated, distances for a property are stored in your browser
+- **Cache is indexed by property ID** - Each property's distances are stored separately
+- **Per-location and travel mode** - Different origins and travel modes are cached independently
+- **Persistent across sessions** - Cache survives browser restarts
+- **Automatic cache use** - Cached results load instantly without API calls
+
+This means:
+- ✅ Faster loading when you revisit listings
+- ✅ Lower API costs (fewer calls to Google Maps)
+- ✅ Works even when scrolling back through listings you've seen before
+
 ## Privacy
 
 - Your API key and locations are stored locally in Chrome's sync storage
+- Distance cache is stored in Chrome's local storage
 - No data is sent to any server except Google Maps API for distance calculations
 - The extension only runs on idealista.it
 

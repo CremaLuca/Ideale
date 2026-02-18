@@ -1,6 +1,7 @@
 // Content script for idealista.it
 let settings = null;
 let observer = null;
+let distanceCache = {};
 
 // Initialize
 async function init() {
@@ -28,6 +29,13 @@ async function init() {
   }
   
   console.log('[Idealista Distance] Waiting for listing items...');
+  
+  // Load cache from storage
+  const cacheData = await chrome.storage.local.get(['distanceCache']);
+  if (cacheData.distanceCache) {
+    distanceCache = cacheData.distanceCache;
+    console.log('[Idealista Distance] Loaded cache with', Object.keys(distanceCache).length, 'entries');
+  }
   
   // Wait for the main listing items to appear (listings page)
   waitForElement('main.listing-items', () => {
@@ -80,6 +88,64 @@ function observeListingChanges() {
   });
 }
 
+// Parse duration string to minutes
+function parseTimeToMinutes(durationString) {
+  // Examples: "15 min", "1 hour 20 min", "2 hours", "45 mins"
+  let totalMinutes = 0;
+  
+  const hourMatch = durationString.match(/(\d+)\s*hour/i);
+  if (hourMatch) {
+    totalMinutes += parseInt(hourMatch[1]) * 60;
+  }
+  
+  const minMatch = durationString.match(/(\d+)\s*min/i);
+  if (minMatch) {
+    totalMinutes += parseInt(minMatch[1]);
+  }
+  
+  return totalMinutes;
+}
+
+// Format minutes back to readable string
+function formatMinutesToString(minutes) {
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (mins === 0) {
+    return `${hours} hour${hours > 1 ? 's' : ''}`;
+  }
+  return `${hours} hour${hours > 1 ? 's' : ''} ${mins} min`;
+}
+
+// Get listing ID from page element
+function getListingId(element) {
+  // For listing items: data-element-id attribute
+  if (element && element.dataset && element.dataset.elementId) {
+    return element.dataset.elementId;
+  }
+  
+  // For detail page: input[name="adId"] value
+  const adIdInput = document.querySelector('input[name="adId"]');
+  if (adIdInput && adIdInput.value) {
+    return adIdInput.value;
+  }
+  
+  return null;
+}
+
+// Generate cache key
+function getCacheKey(listingId, origin, travelMode) {
+  return `${listingId}|${origin}|${travelMode}`;
+}
+
+// Save cache to storage
+async function saveCache() {
+  await chrome.storage.local.set({ distanceCache });
+  console.log('[Idealista Distance] Cache saved with', Object.keys(distanceCache).length, 'entries');
+}
+
 // Process all listing items
 async function processListings() {
   const articles = document.querySelectorAll('article.item');
@@ -99,7 +165,9 @@ async function processListings() {
     
     if (!address) continue;
     
-    console.log(`[Idealista Distance] Found listing address: "${address}"`);
+    // Get listing ID
+    const listingId = getListingId(article);
+    console.log(`[Idealista Distance] Found listing address: "${address}", ID: ${listingId}`);
     
     // Mark as processed
     article.dataset.distanceProcessed = 'true';
@@ -118,7 +186,7 @@ async function processListings() {
     
     // Calculate distances only if API key is present
     if (settings.apiKey) {
-      calculateDistances(address, distanceEl);
+      calculateDistances(address, distanceEl, listingId);
     }
   }
 }
@@ -177,7 +245,9 @@ async function processDetailPage() {
     return;
   }
   
-  console.log(`[Idealista Distance] Found detail page address: "${address}"`);
+  // Get listing ID
+  const listingId = getListingId(null);
+  console.log(`[Idealista Distance] Found detail page address: "${address}", ID: ${listingId}`);
   
   // Create and insert distance info element
   const distanceEl = document.createElement('div');
@@ -193,40 +263,84 @@ async function processDetailPage() {
   
   // Calculate distances only if API key is present
   if (settings.apiKey) {
-    calculateDistances(address, distanceEl);
+    calculateDistances(address, distanceEl, listingId);
   }
 }
 
 // Calculate distances from all configured locations
-async function calculateDistances(destination, displayElement) {
+async function calculateDistances(destination, displayElement, listingId) {
   if (!settings.apiKey || !settings.locations || settings.locations.length === 0) {
     displayElement.innerHTML = '<span class="error">Extension not configured</span>';
     return;
   }
   
-  console.log(`[Idealista Distance] Processing destination: "${destination}"`);
+  console.log(`[Idealista Distance] Processing destination: "${destination}", Listing ID: ${listingId}`);
   console.log('[Idealista Distance] Configured locations:', settings.locations);
   
   try {
     const results = [];
+    let cacheUsed = 0;
+    let apiCallsMade = 0;
     
     for (const location of settings.locations) {
       const origin = location.address;
       const travelMode = location.travelMode || 'driving';
+      
+      // Check cache first if we have a listing ID
+      if (listingId) {
+        const cacheKey = getCacheKey(listingId, origin, travelMode);
+        const cachedData = distanceCache[cacheKey];
+        
+        if (cachedData) {
+          console.log(`[Idealista Distance] Cache hit for "${origin}" via ${travelMode}: ${cachedData.durationMinutes} min`);
+          results.push({
+            origin: origin,
+            travelMode: travelMode,
+            duration: formatMinutesToString(cachedData.durationMinutes),
+            distance: cachedData.distance,
+            durationMinutes: cachedData.durationMinutes
+          });
+          cacheUsed++;
+          continue;
+        }
+      }
+      
+      // No cache - make API call
       console.log(`[Idealista Distance] Calculating from "${origin}" via ${travelMode}`);
       const distance = await getDistanceFromGoogleMaps(origin, destination, travelMode);
       if (distance) {
         console.log(`[Idealista Distance] Result: ${distance.duration}, ${distance.distance}`);
+        const durationMinutes = parseTimeToMinutes(distance.duration);
+        
         results.push({
           origin: origin,
           travelMode: travelMode,
           duration: distance.duration,
-          distance: distance.distance
+          distance: distance.distance,
+          durationMinutes: durationMinutes
         });
+        
+        // Store in cache if we have a listing ID
+        if (listingId) {
+          const cacheKey = getCacheKey(listingId, origin, travelMode);
+          distanceCache[cacheKey] = {
+            durationMinutes: durationMinutes,
+            distance: distance.distance,
+            timestamp: Date.now()
+          };
+          apiCallsMade++;
+        }
       } else {
         console.warn(`[Idealista Distance] No result for "${origin}" -> "${destination}"`);
       }
     }
+    
+    // Save cache if we made any API calls
+    if (apiCallsMade > 0) {
+      await saveCache();
+    }
+    
+    console.log(`[Idealista Distance] Cache stats - Used: ${cacheUsed}, API calls: ${apiCallsMade}`);
     
     if (results.length > 0) {
       displayDistanceResults(results, displayElement);
