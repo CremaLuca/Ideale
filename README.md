@@ -68,7 +68,7 @@ A Chrome extension that automatically calculates and displays travel times from 
 The extension displays distance and travel time information directly in the listing:
 
 ```
-� Ufficio: 15 min (8.5 km)
+🏢 Ufficio: 15 min (8.5 km)
 🚌 Ufficio: 25 min (8.5 km)
 🚶 Casa: 35 min (2.1 km)
 ```
@@ -95,36 +95,7 @@ This means:
 - No data is sent to any server except Google Maps API for distance calculations
 - The extension only runs on idealista.it
 
-## Troubleshooting
-
-### Distances not showing?
-
-- Make sure you've configured your API key and locations
-- Check that the Distance Matrix API is enabled in Google Cloud Console
-- Verify your API key has no restrictions preventing its use
-
-### "Error calculating distance"?
-
-- Check your internet connection
-- Verify the property address is valid
-- Ensure your API key is correct and has usage quota remaining
-
 ## Development
-
-### Files
-
-- `manifest.json` - Extension manifest
-- `popup.html` - Configuration popup interface
-- `popup.js` - Popup logic and settings management
-- `popup.css` - Popup styles
-- `content.js` - Content script that runs on idealista.it
-- `icon*.png` - Extension icons (you need to create these)
-
-### API Usage
-
-The extension uses the Google Maps Distance Matrix API. Be aware of:
-- API usage limits and costs
-- Each property check makes one API call per configured location
 
 ## License
 
