@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Idealista Distance Calculator",
+  "name": "Ideale Calculator",
   "version": "1.0",
   "description": "Calculate distances and travel times from your locations to properties on Idealista",
   "permissions": [

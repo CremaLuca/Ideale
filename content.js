@@ -5,10 +5,10 @@ let distanceCache = {};
 
 // Initialize
 async function init() {
-  console.log('[Idealista Distance] Initializing extension...');
+  console.log('[Ideale] Initializing extension...');
   settings = await chrome.storage.sync.get(['apiKey', 'locations']);
   
-  console.log('[Idealista Distance] Settings loaded:', {
+  console.log('[Ideale] Settings loaded:', {
     hasApiKey: !!settings.apiKey,
     apiKeyLength: settings.apiKey?.length,
     locationsCount: settings.locations?.length || 0,
@@ -16,37 +16,37 @@ async function init() {
   });
   
   if (!settings.locations || settings.locations.length === 0) {
-    console.log('[Idealista Distance] Please configure locations first');
+    console.log('[Ideale] Please configure locations first');
     return;
   }
   
   // Migrate old format if needed
   if (typeof settings.locations[0] === 'string') {
-    console.log('[Idealista Distance] Migrating old location format...');
+    console.log('[Ideale] Migrating old location format...');
     const travelMode = (await chrome.storage.sync.get(['travelMode'])).travelMode || 'driving';
     settings.locations = settings.locations.map(addr => ({ address: addr, travelMode }));
-    console.log('[Idealista Distance] Migration complete:', settings.locations);
+    console.log('[Ideale] Migration complete:', settings.locations);
   }
   
-  console.log('[Idealista Distance] Waiting for listing items...');
+  console.log('[Ideale] Waiting for listing items...');
   
   // Load cache from storage
   const cacheData = await chrome.storage.local.get(['distanceCache']);
   if (cacheData.distanceCache) {
     distanceCache = cacheData.distanceCache;
-    console.log('[Idealista Distance] Loaded cache with', Object.keys(distanceCache).length, 'entries');
+    console.log('[Ideale] Loaded cache with', Object.keys(distanceCache).length, 'entries');
   }
   
   // Wait for the main listing items to appear (listings page)
   waitForElement('main.listing-items', () => {
-    console.log('[Idealista Distance] Found listing container, starting to process listings');
+    console.log('[Ideale] Found listing container, starting to process listings');
     processListings();
     observeListingChanges();
   });
   
   // Wait for detail container (detail page)
   waitForElement('main.detail-container', () => {
-    console.log('[Idealista Distance] Found detail container, processing detail page');
+    console.log('[Ideale] Found detail container, processing detail page');
     processDetailPage();
   });
 }
@@ -143,13 +143,13 @@ function getCacheKey(listingId, origin, travelMode) {
 // Save cache to storage
 async function saveCache() {
   await chrome.storage.local.set({ distanceCache });
-  console.log('[Idealista Distance] Cache saved with', Object.keys(distanceCache).length, 'entries');
+  console.log('[Ideale] Cache saved with', Object.keys(distanceCache).length, 'entries');
 }
 
 // Process all listing items
 async function processListings() {
   const articles = document.querySelectorAll('article.item');
-  console.log(`[Idealista Distance] Found ${articles.length} article items`);
+  console.log(`[Ideale] Found ${articles.length} article items`);
   
   for (const article of articles) {
     // Skip if already processed
@@ -167,7 +167,7 @@ async function processListings() {
     
     // Get listing ID
     const listingId = getListingId(article);
-    console.log(`[Idealista Distance] Found listing address: "${address}", ID: ${listingId}`);
+    console.log(`[Ideale] Found listing address: "${address}", ID: ${listingId}`);
     
     // Mark as processed
     article.dataset.distanceProcessed = 'true';
@@ -195,14 +195,14 @@ async function processListings() {
 async function processDetailPage() {
   // Check if already processed
   if (document.querySelector('.idealista-distance-info-detail')) {
-    console.log('[Idealista Distance] Detail page already processed');
+    console.log('[Ideale] Detail page already processed');
     return;
   }
   
   // Find the comment wrapper to insert before it
   const commentWrapper = document.querySelector('div#comment-wrapper');
   if (!commentWrapper) {
-    console.log('[Idealista Distance] Comment wrapper not found on detail page');
+    console.log('[Ideale] Comment wrapper not found on detail page');
     return;
   }
   
@@ -216,7 +216,7 @@ async function processDetailPage() {
       .map(li => li.textContent.trim())
       .filter(text => text !== '')
       .join(', ');
-    console.log(`[Idealista Distance] Extracted address from headerMap: "${address}"`);
+    console.log(`[Ideale] Extracted address from headerMap: "${address}"`);
   }
   
   // Fallback: Try getting from main address element
@@ -227,7 +227,7 @@ async function processDetailPage() {
     
     if (addressElement) {
       address = addressElement.textContent.trim();
-      console.log(`[Idealista Distance] Extracted address from fallback selector: "${address}"`);
+      console.log(`[Ideale] Extracted address from fallback selector: "${address}"`);
     }
   }
   
@@ -236,18 +236,18 @@ async function processDetailPage() {
     const subtitleElement = document.querySelector('.main-info__title-minor');
     if (subtitleElement) {
       address = subtitleElement.textContent.trim();
-      console.log(`[Idealista Distance] Extracted address from subtitle: "${address}"`);
+      console.log(`[Ideale] Extracted address from subtitle: "${address}"`);
     }
   }
   
   if (!address) {
-    console.log('[Idealista Distance] Could not find address on detail page');
+    console.log('[Ideale] Could not find address on detail page');
     return;
   }
   
   // Get listing ID
   const listingId = getListingId(null);
-  console.log(`[Idealista Distance] Found detail page address: "${address}", ID: ${listingId}`);
+  console.log(`[Ideale] Found detail page address: "${address}", ID: ${listingId}`);
   
   // Create and insert distance info element
   const distanceEl = document.createElement('div');
@@ -274,8 +274,8 @@ async function calculateDistances(destination, displayElement, listingId) {
     return;
   }
   
-  console.log(`[Idealista Distance] Processing destination: "${destination}", Listing ID: ${listingId}`);
-  console.log('[Idealista Distance] Configured locations:', settings.locations);
+  console.log(`[Ideale] Processing destination: "${destination}", Listing ID: ${listingId}`);
+  console.log('[Ideale] Configured locations:', settings.locations);
   
   try {
     const results = [];
@@ -292,7 +292,7 @@ async function calculateDistances(destination, displayElement, listingId) {
         const cachedData = distanceCache[cacheKey];
         
         if (cachedData) {
-          console.log(`[Idealista Distance] Cache hit for "${origin}" via ${travelMode}: ${cachedData.durationMinutes} min`);
+          console.log(`[Ideale] Cache hit for "${origin}" via ${travelMode}: ${cachedData.durationMinutes} min`);
           results.push({
             origin: origin,
             travelMode: travelMode,
@@ -306,10 +306,10 @@ async function calculateDistances(destination, displayElement, listingId) {
       }
       
       // No cache - make API call
-      console.log(`[Idealista Distance] Calculating from "${origin}" via ${travelMode}`);
+      console.log(`[Ideale] Calculating from "${origin}" via ${travelMode}`);
       const distance = await getDistanceFromGoogleMaps(origin, destination, travelMode);
       if (distance) {
-        console.log(`[Idealista Distance] Result: ${distance.duration}, ${distance.distance}`);
+        console.log(`[Ideale] Result: ${distance.duration}, ${distance.distance}`);
         const durationMinutes = parseTimeToMinutes(distance.duration);
         
         results.push({
@@ -331,7 +331,7 @@ async function calculateDistances(destination, displayElement, listingId) {
           apiCallsMade++;
         }
       } else {
-        console.warn(`[Idealista Distance] No result for "${origin}" -> "${destination}"`);
+        console.warn(`[Ideale] No result for "${origin}" -> "${destination}"`);
       }
     }
     
@@ -340,7 +340,7 @@ async function calculateDistances(destination, displayElement, listingId) {
       await saveCache();
     }
     
-    console.log(`[Idealista Distance] Cache stats - Used: ${cacheUsed}, API calls: ${apiCallsMade}`);
+    console.log(`[Ideale] Cache stats - Used: ${cacheUsed}, API calls: ${apiCallsMade}`);
     
     if (results.length > 0) {
       displayDistanceResults(results, displayElement);
@@ -348,7 +348,7 @@ async function calculateDistances(destination, displayElement, listingId) {
       displayElement.innerHTML = '<span class="error">Unable to calculate distance (check console for details)</span>';
     }
   } catch (error) {
-    console.error('[Idealista Distance] Calculation error:', error);
+    console.error('[Ideale] Calculation error:', error);
     displayElement.innerHTML = '<span class="error">Error calculating distance (check console)</span>';
   }
 }
@@ -366,7 +366,7 @@ async function getDistanceFromGoogleMaps(origin, destination, travelMode) {
       if (response && response.success) {
         resolve(response.data);
       } else {
-        console.error('[Idealista Distance] API call failed:', {
+        console.error('[Ideale] API call failed:', {
           origin,
           destination,
           travelMode,

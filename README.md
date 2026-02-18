@@ -1,4 +1,4 @@
-# Idealista Distance Calculator Chrome Extension
+# Ideale Chrome Extension
 
 A Chrome extension that automatically calculates and displays travel times from your specified locations to properties listed on idealista.it.
 
