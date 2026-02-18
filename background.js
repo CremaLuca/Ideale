@@ -1,3 +1,8 @@
+// Browser API compatibility
+if (typeof browser !== 'undefined' && typeof chrome === 'undefined') {
+  self.chrome = browser;
+}
+
 // Background service worker for API calls
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'calculateDistance') {

@@ -1,6 +1,6 @@
-# Ideale Chrome Extension
+# Ideale Browser Extension
 
-A Chrome extension that automatically calculates and displays travel times from your specified locations to properties listed on idealista.it.
+A browser extension for Chrome and Firefox that automatically calculates and displays travel times from your specified locations to properties listed on idealista.it.
 
 ## Features
 
@@ -11,6 +11,7 @@ A Chrome extension that automatically calculates and displays travel times from 
 - 🔄 Real-time updates when browsing listings
 - 📍 Works on both listing pages and property detail pages
 - 💾 Smart caching - distances are cached locally to minimize API calls and improve performance
+- 🌍 **Cross-browser support** - Works on Chrome and Firefox
 
 ## Installation
 
@@ -24,11 +25,22 @@ A Chrome extension that automatically calculates and displays travel times from 
 
 ### Step 2: Install the Extension
 
+#### Chrome
+
 1. Download or clone this repository
 2. Open Chrome and navigate to `chrome://extensions/`
 3. Enable "Developer mode" (toggle in top right)
 4. Click "Load unpacked"
 5. Select the extension folder
+
+#### Firefox
+
+1. Download or clone this repository
+2. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`
+3. Click "Load Temporary Add-on..."
+4. Navigate to the extension folder and select `manifest.json`
+
+**Note**: In Firefox, temporary extensions are removed when you close the browser. For permanent installation, you would need to sign the extension through Mozilla Add-ons.
 
 ## Usage
 
@@ -90,12 +102,26 @@ This means:
 
 ## Privacy
 
-- Your API key and locations are stored locally in Chrome's sync storage
-- Distance cache is stored in Chrome's local storage
+- Your API key and locations are stored locally in browser's sync storage
+- Distance cache is stored in browser's local storage
 - No data is sent to any server except Google Maps API for distance calculations
 - The extension only runs on idealista.it
 
 ## Development
+
+### Browser Compatibility
+
+The extension is built using standard WebExtensions APIs and works on:
+- **Chrome/Chromium** - Version 109+
+- **Firefox** - Version 109+
+
+The `browser-polyfill.js` ensures API compatibility between browsers.
+
+### API Usage
+
+The extension uses the Google Maps Distance Matrix API. Be aware of:
+- API usage limits and costs
+- Each property check makes one API call per configured location (first time only - results are cached)
 
 ## License
 
